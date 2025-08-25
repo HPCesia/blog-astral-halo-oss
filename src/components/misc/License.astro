@@ -1,0 +1,57 @@
+---
+import { licenseConfig, profileConfig, siteConfig } from '@/config';
+import { t } from '@utils/i18n';
+
+interface Props {
+  time: Date;
+  lang?: string;
+  license?: string;
+  licenseUrl?: string;
+}
+
+const { time, license, licenseUrl, lang } = Astro.props;
+
+const infomations = [
+  {
+    key: t.meta.publishedAt(),
+    value: time.toLocaleDateString(lang || siteConfig.lang.replace('_', '-')),
+    time: time,
+  },
+  {
+    key: t.meta.author(),
+    value: profileConfig.name,
+    link: '/about/',
+  },
+  {
+    key: t.meta.license(),
+    value: license || licenseConfig.name,
+    link: licenseUrl || licenseConfig.url,
+  },
+];
+---
+
+<div class="card border-primary/10 from-primary/35 to-primary/15 my-4 border bg-linear-150">
+  <div class="card-body grid grid-cols-2 gap-x-4 p-4 text-lg text-shadow-lg">
+    {
+      infomations.map((info) => (
+        <Fragment>
+          <span class="mr-4 text-right font-bold">{info.key}</span>
+          {(() => {
+            const text = info.time ? (
+              <time datetime={info.time?.toISOString()}>{info.value}</time>
+            ) : (
+              <span>{info.value}</span>
+            );
+            return info.link ? (
+              <a href={info.link} title={info.value} class="text-primary hover:underline">
+                {text}
+              </a>
+            ) : (
+              text
+            );
+          })()}
+        </Fragment>
+      ))
+    }
+  </div>
+</div>
