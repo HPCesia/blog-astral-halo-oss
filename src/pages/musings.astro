@@ -1,0 +1,38 @@
+---
+import { asideConfig, commentConfig } from '@/config';
+import ProfileCard from '@components/aside/ProfileCard.astro';
+import RecentCommentsCard from '@components/aside/RecentCommentsCard.vue';
+import SiteInfoCard from '@components/aside/SiteInfoCard.astro';
+import GoToSocialRSSRender from '@components/widgets/GoToSocialRSSRender.vue';
+import MainLayout from '@layouts/MainLayout.astro';
+import { Icon } from 'astro-icon/components';
+---
+
+<MainLayout>
+  <Fragment slot="header-content">
+    <h1 class="my-2 text-3xl font-bold">碎语</h1>
+    <p class="text-base-content/60 text-sm">
+      在 <a href="https://trin.one/@hpcesia" target="_blank" class="link link-primary">
+        ⁂Fediverse
+      </a> 上的闲言碎语
+    </p>
+  </Fragment>
+  <GoToSocialRSSRender apiUrl="https://gotosocial.api.hpcesia.com" client:load>
+    <Icon name="mdi:eye" slot="eyeOpenIcon" />
+    <Icon name="mdi:eye-off" slot="eyeCloseIcon" />
+    <Icon name="mdi:message" slot="replyIcon" />
+    <Icon name="mdi:heart" slot="likeIcon" />
+    <Icon name="mingcute:rocket-line" slot="reblogIcon" />
+  </GoToSocialRSSRender>
+  <Fragment slot="aside-fixed">
+    <ProfileCard />
+    <SiteInfoCard />
+  </Fragment>
+  <Fragment slot="aside-sticky">
+    {
+      commentConfig.enable && asideConfig.recentComment.enable && (
+        <RecentCommentsCard client:visible />
+      )
+    }
+  </Fragment>
+</MainLayout>

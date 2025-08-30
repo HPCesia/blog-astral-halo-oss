@@ -1,0 +1,42 @@
+---
+import { siteConfig } from '@/config';
+import GlobalLayout from './GlobalLayout.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  lang?: string;
+  banner?: {
+    src: string;
+    basePath?: string;
+  };
+}
+const { title, description, lang, banner } = Astro.props;
+---
+
+<GlobalLayout title={title} description={description} lang={lang} banner={banner}>
+  <slot slot="head" name="head" />
+  <slot slot="header" name="header" />
+  <!-- Main content -->
+  <main class="relative mx-auto flex max-w-(--breakpoint-xl) flex-col gap-4">
+    <div
+      id="header-content"
+      class:list={[
+        siteConfig.banner !== false && 'swup-transition-slide absolute top-0 -translate-y-full',
+      ]}
+    >
+      <slot name="header-content" />
+    </div>
+    <div class="flex gap-4">
+      <div id="main-content" class="my-4 w-full xl:max-w-[calc(100%-17rem)]">
+        <slot />
+      </div>
+      <aside id="aside-content" class="my-4 flex w-64 min-w-64 flex-col gap-4 max-xl:hidden">
+        <slot name="aside-fixed" />
+        <div class="sticky top-20 flex flex-col gap-4">
+          <slot name="aside-sticky" />
+        </div>
+      </aside>
+    </div>
+  </main>
+</GlobalLayout>

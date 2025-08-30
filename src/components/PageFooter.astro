@@ -1,0 +1,71 @@
+---
+import { footerConfig, profileConfig } from '@/config';
+
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="mt-auto shrink-0" id="page-footer">
+  {
+    footerConfig.columns && (
+      <div class="mx-auto mt-4 mb-8 flex w-full max-w-(--breakpoint-xl) flex-wrap justify-between px-8 md:px-12 xl:px-8">
+        {footerConfig.columns.map((col) => (
+          <nav class="grid grid-cols-1 gap-4">
+            <ul class="menu">
+              <li class="menu-title">
+                <h3 class="font-bold uppercase">{col.title}</h3>
+              </li>
+              {col.items.map((item) => (
+                <li>
+                  <a href={item.link} {...(item.blank ? { target: '_blank' } : {})}>
+                    {item.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
+      </div>
+    )
+  }
+</footer>
+<footer
+  class="footer border-base-300 bg-base-200 text-base-content flex flex-col justify-between border-t px-10 py-4 text-lg md:flex-row"
+  id="footer"
+>
+  <aside class="items-center">
+    <p>
+      © {footerConfig.copyrightYear}{
+        footerConfig.copyrightYear < currentYear && `-${currentYear}`
+      }
+      <a href="/about/" class="font-bold">{profileConfig.name}</a>
+    </p>
+  </aside>
+  <nav class="flex flex-row">
+    {
+      footerConfig.rightItems.map((item) => (
+        <span>
+          {item.map((c) => {
+            if (typeof c === 'string') return <span>{c}</span>;
+            else if ('link' in c)
+              return (
+                <a href={c.link} class={c.class || ''} target="_blank">
+                  {c.text}
+                </a>
+              );
+            else return <span class:list={c.class || ''}>{c.text}</span>;
+          })}
+        </span>
+      ))
+    }
+  </nav>
+</footer>
+
+<style>
+  a {
+    @apply duration-150;
+
+    &:hover {
+      color: var(--color-primary);
+    }
+  }
+</style>

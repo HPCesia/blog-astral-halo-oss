@@ -1,0 +1,72 @@
+---
+import { searchConfig } from '@/config';
+import { t } from '@utils/i18n';
+import { Icon } from 'astro-icon/components';
+import Pagefind from './search/Pagefind.vue';
+---
+
+<dialog id="search_modal" class="modal">
+  <div class="modal-box">
+    <form method="dialog">
+      <button
+        class="btn btn-circle btn-ghost btn-sm absolute top-2 right-2"
+        title={t.common.close()}
+        aria-label={t.common.close()}>✕</button
+      >
+    </form>
+    <div class="w-full p-4">
+      {
+        (() => {
+          switch (searchConfig.provider) {
+            case 'pagefind':
+              return (
+                <Pagefind client:visible inputId="search-input">
+                  <label class="input input-bordered flex w-full items-center gap-2">
+                    <input
+                      id="search-input"
+                      type="search"
+                      spellcheck="false"
+                      autocorrect="off"
+                      autocomplete="off"
+                      autocapitalize="off"
+                      class="grow"
+                      placeholder={t.button.search()}
+                    />
+                    <Icon
+                      name="material-symbols:search-rounded"
+                      height="1.875rem"
+                      width="1.875rem"
+                    />
+                  </label>
+                  <Icon
+                    slot="icon"
+                    name="material-symbols:chevron-right"
+                    class="text-primary inline-block"
+                    height="1.125rem"
+                    width="1.125rem"
+                  />
+                </Pagefind>
+              );
+          }
+        })()
+      }
+    </div>
+    <div class="relative mt-auto w-full shrink-0 pt-4 text-center">
+      Powered by {
+        (() => {
+          switch (searchConfig.provider) {
+            case 'pagefind':
+              return (
+                <a href="https://pagefind.app" target="_blank" class="text-primary">
+                  Pagefind
+                </a>
+              );
+          }
+        })()
+      }
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button>{t.common.close()}</button>
+  </form>
+</dialog>
