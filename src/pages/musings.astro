@@ -1,0 +1,33 @@
+---
+import { asideConfig, commentConfig } from '@/config';
+import ProfileCard from '@components/aside/ProfileCard.astro';
+import RecentCommentsCard from '@components/aside/RecentCommentsCard.tsx';
+import SiteInfoCard from '@components/aside/SiteInfoCard.astro';
+import GoToSocialStatuses from '@components/widgets/GoToSocialStatuses.tsx';
+import MainLayout from '@layouts/MainLayout.astro';
+---
+
+<MainLayout>
+  <Fragment slot="header-content">
+    <div class="flex flex-col max-md:px-3">
+      <h1 class="my-2 text-3xl font-bold">碎语</h1>
+      <p class="text-base-content/60 text-sm">
+        在 <a href="https://trin.one/@hpcesia" target="_blank" class="link link-primary">
+          ⁂Fediverse
+        </a> 上的闲言碎语
+      </p>
+    </div>
+  </Fragment>
+  <GoToSocialStatuses apiUrl="https://gotosocial.api.hpcesia.com" client:load />
+  <Fragment slot="aside-fixed">
+    <ProfileCard />
+    <SiteInfoCard />
+  </Fragment>
+  <Fragment slot="aside-sticky">
+    {
+      commentConfig.enable && asideConfig.recentComment.enable && (
+        <RecentCommentsCard client:visible />
+      )
+    }
+  </Fragment>
+</MainLayout>

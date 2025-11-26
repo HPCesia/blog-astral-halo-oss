@@ -1,0 +1,82 @@
+---
+title: 优化扫描版电子书指北
+category: 经验记录
+tags: []
+cover: https://images.hpcesia.com/672f1a7fd05c1.webp
+slug: how-to-optimize-scanned-ebooks
+published: 2024-11-10T14:44:07+08:00
+---
+import { RepoCard } from '@components/user';
+
+## 什么是优化的电子书
+如果不看内容，只看阅读的方便程度，一本优秀的电子书应该是怎样的？最优秀的自然是由制作优良的 $\LaTeX$ 或 Typst 源码直接编译生成的 PDF 文件，有可跳转的目录，有目录书签，有可搜索文本。但这种电子书除非是开源的，否则只会在制作者的小圈子内流通，不会轻易流通。次一级，便是制作优良的扫描版电子书了。
+
+一个制作优良的扫描版电子书应该是怎样的？文字图片清晰，有目录书签与可搜索文本，这是我对制作优良的扫描版电子书的定义。我在学习一些专业课程、获取某些专业资料时，经常会遇到一些扫描版的电子书，这些电子书有一部分已经制作好了正确的目录书签，方便进行阅读，但文本不可搜索；更多的只有页码作为书签，甚至完全没有任何书签。这样的电子书显然是不方便阅读的，会极大降低学习效率，因此，我选择自力更生，对这些扫描版电子书进行优化。
+
+## 怎么优化扫描版电子书
+考虑到可能的版权问题，我选择使用我自己的课程作业 pdf，通过开源在线项目 [Look Scanned](https://lookscanned.io/zh/) 将其变成扫描件来演示。
+
+<RepoCard repo='rwv/lookscanned.io' platform='github' />
+
+### 图像处理
+首先，需要将 PDF 的图像全部提取出来，这里 Windows 用户可以使用维护了 12 年、近两年开源的老牌免费 PDF 处理工具箱「PDF 补丁丁」：
+
+<RepoCard repo='wmjordan/PDFPatcher' platform='github' />
+
+macOS 与 Linux 用户可以使用下面的项目作为替代品：
+
+<RepoCard repo='Stirling-Tools/Stirling-PDF' platform='github' />
+
+Stirling-PDF 的图像提取功能似乎不够完善，不能直接提取扫描件的图像，需要使用 PDF 转图像功能才能正常导出图像，速度慢不少。
+
+提取出全部图像后，就该对其进行处理了。Scantailor Advanced 是一个开源的扫描件处理软件，虽然其基于的 Scantailor 已经 Public Archive 了，但是依旧好用。
+
+<RepoCard repo='4lex4/scantailor-advanced' platform='github' />
+
+在软件中新建项目，选择之前导出的图片，就可以开始图片处理了。
+
+![Scantailor Advanced 页面](https://images.hpcesia.com/67303cbd62a87.webp)
+
+页面是全英文，没有中文翻译，但是看懂难度不大。点击右上角栏目右边的小绿三角就可以对所有页面执行当前的操作了，基本全部使用 auto 即可，效果相当不错。需要注意，右侧的选项调整默认只对当前页面生效，需要使用「Apply to」按钮来应用到全部页面。
+
+![Scantailor Advanced 页面](https://images.hpcesia.com/67303e796cf0a.webp)
+
+需要注意的是，中文文档可能需要在 output 中关闭「Savitzky-Golay smoothing」，不然文字会糊成一团。DPI 可以调高一点，不然容易看不清，全是黑白页面的话 DPI 拉高，文件大小也不会太大。
+
+一路优化完成后，只要 output 中处理了全部页面且效果满意，就可以关闭软件了，输出的图片会保存在 out 目录中。接着使用 PDFPatcher 或 Stirling-PDF 合并导出的图片为 PDF，第一步处理大功告成。
+
+![效果 1](https://images.hpcesia.com/673050598911e.webp)
+![效果 2](https://images.hpcesia.com/6730509a54c01.webp)
+
+可以看出文字效果不错，图像效果有点差。
+
+### OCR
+第二步，是对 PDF 做 OCR 处理，这里需要用到一个开源项目：
+
+<RepoCard repo='hiroi-sora/Umi-OCR' platform='github' />
+
+这是一个支持多种开源 OCR 模型的开源项目，支持 Windows 7 及以上的 Windows x64 平台与 Linux x64 平台，可以方便地将扫描版的 PDF 转换为带有可搜索图像文本的 PDF，同时使用了嵌入 Python 解释器，可以让小白开箱即用。
+
+![Umi-OCR 页面展示](https://images.hpcesia.com/672f74141753d.webp)
+![Umi-OCR 页面展示](https://images.hpcesia.com/673052ab0ee80.webp)
+
+对于 macOS 用户，由于该项目作者没钱买 mac ~~（好真实的理由）~~，所以目前只能通过 Docker 或虚拟机的方式来使用。
+
+由于该软件界面一目了然，因此不做过多说明，选择批量文档，内容提取模式选择「混合 OCR/原文本」即可。
+
+### 目录书签制作
+第三步，则是制作目录书签。这里同样需要用到一个开源项目：
+
+<RepoCard repo='chroming/pdfdir' platform='github' />
+
+该项目可以将给定的目录作为书签嵌入到 PDF 当中。目录的获取有几种办法，首先是去一些有该电子书信息的的网站上查找是否有目录信息，有的话用网站上的最好；如果找不到现成信息，则可以使用刚才 OCR 好的 PDF，利用书里的目录来制作，但由于 OCR 识别的不稳定性，这种方式通常需要手动修正文本。
+
+![制作目录](https://images.hpcesia.com/6730548cd7346.png)
+
+如图所示，该工具支持自定义正则表达式来匹配目录层级，也支持设置页差，可以方便快捷地将目录书签注入到 PDF 中。
+
+### 效果演示
+将源文件和制作的优化版扫描文件进行对比，可以看出效果还是不错的：
+
+![扫描版](https://images.hpcesia.com/6730556110ae3.webp)
+![源文件](https://images.hpcesia.com/673055b354a10.webp)

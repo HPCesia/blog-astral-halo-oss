@@ -1,0 +1,8 @@
+dist
+node_modules
+.github
+.changeset
+
+# # Ignore md and mdx files because Prettier doesn't support them well.
+# *.md
+# *.mdx

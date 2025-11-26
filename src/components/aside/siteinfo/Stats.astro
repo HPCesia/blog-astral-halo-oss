@@ -1,0 +1,82 @@
+---
+import { asideConfig, siteConfig } from '@/config';
+import { getPosts, getPostsCount } from '@utils/content-utils';
+import { t } from '@utils/i18n';
+import { Icon } from 'astro-icon/components';
+import { render } from 'astro:content';
+---
+
+<div class="stats stats-vertical w-full">
+  {
+    asideConfig.siteInfo.stats.map(async (entry) => {
+      switch (entry) {
+        case 'post-count': {
+          const postsCount = await getPostsCount();
+          return (
+            <div class="stat">
+              <div class="stat-title flex flex-row items-center gap-1">
+                <Icon name="material-symbols:folder-open-rounded" />
+                <span>{t.status.totalPosts}</span>
+              </div>
+              <div class="stat-value text-base">{t.status.postsCount(postsCount)}</div>
+            </div>
+          );
+        }
+        case 'last-updated':
+          return (
+            <div class="stat">
+              <div class="stat-title flex flex-row items-center gap-1">
+                <Icon name="material-symbols:refresh-rounded" />
+                <span>{t.status.lastUpdated()}</span>
+              </div>
+              <div class="stat-value text-base">
+                <time datetime={new Date().toISOString()}>
+                  {new Date().toLocaleDateString(siteConfig.lang.replace('_', '-'))}
+                </time>
+              </div>
+            </div>
+          );
+        case 'site-words-count':
+          return (
+            <div class="stat">
+              <div class="stat-title flex flex-row items-center gap-1">
+                <Icon name="material-symbols:docs-rounded" />
+                <span>{t.status.totalWords()}</span>
+              </div>
+              <div class="stat-value text-base">
+                {(async () => {
+                  const posts = await getPosts();
+                  const words = await Promise.all(
+                    posts.map(async (post) => {
+                      const { remarkPluginFrontmatter } = await render(post);
+                      return remarkPluginFrontmatter.words as number;
+                    })
+                  );
+                  const total = words.reduce((acc, cur) => acc + cur, 0);
+                  return t.status.wordsCount(total);
+                })()}
+              </div>
+            </div>
+          );
+        case 'site-run-days':
+          return (
+            <div class="stat">
+              <div class="stat-title flex flex-row items-center gap-1">
+                <Icon name="material-symbols:calendar-clock-rounded" />
+                <span>{t.status.runTime()}</span>
+              </div>
+              <div class="stat-value text-base">
+                <time
+                  datetime={siteConfig.createAt.toISOString()}
+                  data-force-relative="true"
+                  data-no-ago="true"
+                >
+                  {siteConfig.createAt.toLocaleDateString(siteConfig.lang.replace('_', '-'))}
+                </time>
+              </div>
+            </div>
+          );
+      }
+    })
+  }
+</div>

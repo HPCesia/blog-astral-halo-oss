@@ -1,0 +1,45 @@
+---
+import { asideConfig, commentConfig, siteConfig } from '@/config';
+import ProfileCard from '@components/aside/ProfileCard.astro';
+import RecentCommentsCard from '@components/aside/RecentCommentsCard.tsx';
+import SiteInfoCard from '@components/aside/SiteInfoCard.astro';
+import CategoryBar from '@components/misc/CategoryBar.astro';
+import PostsPage from '@components/PostsPage.astro';
+import MainLayout from '@layouts/MainLayout.astro';
+import { getCategories, getSortedPosts } from '@utils/content-utils';
+
+export async function getStaticPaths() {
+  const articles = await getSortedPosts();
+  const pageNum = Math.ceil(articles.length / siteConfig.postsPerPage);
+  let pages = Array.from({ length: pageNum }).map((_, i) => ({
+    params: { page: i + 1 === 1 ? undefined : 'page/' + (i + 1).toString() },
+    props: { page: i + 1 },
+  }));
+  return pages;
+}
+
+const { page } = Astro.props;
+const articles = await getSortedPosts();
+const categories = await getCategories();
+---
+
+<MainLayout>
+  <CategoryBar categories={Array.from(categories.keys())} />
+  <PostsPage
+    posts={articles}
+    currentPage={page}
+    baseUrl={`/page`}
+    specialPage={[{ page: 1, url: '/' }]}
+  />
+  <Fragment slot="aside-fixed">
+    <ProfileCard />
+    <SiteInfoCard />
+  </Fragment>
+  <Fragment slot="aside-sticky">
+    {
+      commentConfig.enable && asideConfig.recentComment.enable && (
+        <RecentCommentsCard client:visible />
+      )
+    }
+  </Fragment>
+</MainLayout>

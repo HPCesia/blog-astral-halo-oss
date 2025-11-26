@@ -1,0 +1,79 @@
+---
+import { profileConfig } from '@/config';
+import PostInfo from '@components/misc/PostInfo.astro';
+import ImageWrapper from '@components/utils/ImageWrapper.astro';
+import Markdown from '@components/utils/Markdown.astro';
+import Button from '@components/widgets/Button.astro';
+import PostPageLayout from '@layouts/PostPageLayout.astro';
+import { getAllReferences } from '@utils/content-utils';
+import { t } from '@utils/i18n';
+import { Icon } from 'astro-icon/components';
+import { getEntry, render } from 'astro:content';
+
+const md = await getEntry('spec', 'about');
+
+const { Content, headings, remarkPluginFrontmatter } = md
+  ? await render(md)
+  : {
+      Content: Fragment,
+      headings: [],
+      remarkPluginFrontmatter: { references: [] },
+    };
+
+const allReferences = await getAllReferences();
+let allRefByCurrent: typeof allReferences = [];
+let references: {
+  reference: string;
+  context: string;
+  id: string;
+}[] = [];
+if (md) {
+  allRefByCurrent = allReferences.filter((it) => it.refBy.id === md.id);
+  references = remarkPluginFrontmatter.references || [];
+}
+---
+
+<PostPageLayout
+  title={md?.data.title || t.navigation.about()}
+  headings={headings}
+  comment={md?.data.comment}
+>
+  <Fragment slot="header-content">
+    <PostInfo title={md?.data.title || t.navigation.about()} />
+  </Fragment>
+  <div class="xs:w-2/3 mx-auto my-4 flex flex-col items-center justify-center gap-2 xl:hidden">
+    <ImageWrapper
+      class="w-4/5 max-w-60 rounded-xl"
+      src={profileConfig.avatar}
+      alt={profileConfig.name}
+    />
+    <div class="text-2xl font-bold">{profileConfig.name}</div>
+    <div>{profileConfig.bio}</div>
+    <div class="flex flex-row flex-wrap items-center justify-center gap-2">
+      {
+        profileConfig.socialLinks.map((link) => (
+          <Button
+            href={link.url}
+            title={link.name}
+            target="_blank"
+            class="btn-circle btn-ghost text-2xl"
+          >
+            {/* No tooltips because touch screen hard to show them */}
+            <Icon name={link.icon} />
+          </Button>
+        ))
+      }
+    </div>
+  </div>
+  <div class="divider xl:hidden">PROFILE</div>
+  <Markdown
+    bidirectional-references={md
+      ? {
+          references,
+          allRefByCurrent,
+        }
+      : undefined}
+  >
+    <Content />
+  </Markdown>
+</PostPageLayout>

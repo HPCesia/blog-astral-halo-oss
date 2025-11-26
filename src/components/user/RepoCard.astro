@@ -1,0 +1,220 @@
+---
+import { Icon } from 'astro-icon/components';
+
+type Platform = {
+  /**
+   * The platform type of the repository
+   *
+   * 存储库的平台类型
+   */
+  platform: string;
+};
+
+interface GithubPlatform extends Platform {
+  platform: 'github';
+}
+
+interface GiteaPlatform extends Platform {
+  platform: 'gitea' | 'forgejo';
+  /**
+   * The host of the Gitea/Forgejo instance
+   *
+   * Gitea/Forgejo 实例的主机地址
+   *
+   * @example 'https://gitea.example.com'
+   */
+  host: string;
+  /**
+   * The Iconify icon name of the Gitea/Forgejo instance
+   *
+   * Gitea/Forgejo 实例的 Iconify 图标名称
+   */
+  icon?: string;
+}
+
+type AllPlatform = GithubPlatform | GiteaPlatform;
+
+type Props = {
+  repo:
+    | {
+        owner: string;
+        name: string;
+      }
+    | `${string}/${string}`;
+} & AllPlatform;
+
+const { repo, platform } = Astro.props;
+const repoName = typeof repo === 'string' ? repo : `${repo.owner}/${repo.name}`;
+
+let url: string;
+let icon: string;
+
+switch (platform) {
+  case 'github': {
+    url = `https://github.com/${repoName}/`;
+    icon = 'mdi:github';
+    break;
+  }
+  case 'gitea':
+  case 'forgejo': {
+    const { host, icon: hostIcon } = Astro.props;
+    url = `${host}/${repoName}/`;
+    icon = hostIcon || `simple-icons:${platform}`;
+    break;
+  }
+  default: {
+    throw new Error(`Unsupported platform: ${platform} for RepoCard`);
+  }
+}
+---
+
+<a
+  href={url}
+  class="card border-base-content/25 my-4 overflow-hidden border"
+  data-repo={repoName}
+  data-platform={platform}
+>
+  <div class="card-body p-4">
+    <div class="card-title mb-4 justify-between">
+      <span class="text-xl">{repoName}</span>
+      <Icon name={icon} height="3rem" width="3rem" />
+    </div>
+    <div class="repo-card-desc flex flex-col gap-2">
+      <div class="skeleton h-4 w-full"></div>
+      <div class="skeleton h-4 w-2/3"></div>
+    </div>
+    <div class="card-actions">
+      <div class="repo-card-star flex items-center justify-center gap-1.5">
+        <Icon name="material-symbols:star-outline-rounded" height="1.25rem" width="1.25rem" />
+        <span class="skeleton h-4 w-6"></span>
+      </div>
+      <div class="repo-card-fork flex items-center justify-center gap-1.5">
+        <Icon name="material-symbols:fork-right-rounded" height="1.25rem" width="1.25rem" />
+        <span class="skeleton h-4 w-6"></span>
+      </div>
+      <div class="repo-card-license hidden items-center justify-center gap-1.5">
+        <Icon name="material-symbols:balance-rounded" height="1.25rem" width="1.25rem" />
+        <span></span>
+      </div>
+      <div class="repo-card-lang hidden items-center justify-center gap-1.5">
+        <Icon name="mingcute:code-line" height="1.25rem" width="1.25rem" />
+        <span></span>
+      </div>
+    </div>
+  </div>
+</a>
+
+<script>
+  const allPlatform = ['github', 'gitea', 'forgejo'] as const;
+  type Platform = (typeof allPlatform)[number];
+
+  interface RepoMeta {
+    description: string | null;
+    language: string | null;
+    license: string | null;
+    stars: number;
+    forks: number;
+  }
+
+  function updateCardUI(card: Element, meta: RepoMeta) {
+    const descriptionNode = card.querySelector('.repo-card-desc')!;
+    const languageNode = card.querySelector('.repo-card-lang')!;
+    const licenseNode = card.querySelector('.repo-card-license')!;
+    const forksNode = card.querySelector('.repo-card-fork')!.querySelector('span')!;
+    const starsNode = card.querySelector('.repo-card-star')!.querySelector('span')!;
+
+    descriptionNode.innerHTML = meta.description || '';
+
+    if (meta.language) {
+      languageNode.classList.remove('hidden');
+      languageNode.classList.add('flex');
+      languageNode.querySelector('span')!.innerText = meta.language;
+    }
+
+    if (meta.license) {
+      licenseNode.classList.remove('hidden');
+      licenseNode.classList.add('flex');
+      licenseNode.querySelector('span')!.innerText = meta.license;
+    }
+
+    forksNode.classList.remove('skeleton', 'h-4', 'w-6');
+    forksNode.innerText = meta.forks.toString();
+
+    starsNode.classList.remove('skeleton', 'h-4', 'w-6');
+    starsNode.innerText = meta.stars.toString();
+  }
+
+  async function init() {
+    const repoCards = document.querySelectorAll('.card[data-repo]');
+    const cardsByPlatform = allPlatform.reduce(
+      (acc, platform) => {
+        acc[platform] = Array.from(repoCards).filter(
+          (card) => card.getAttribute('data-platform') === platform
+        );
+        return acc;
+      },
+      {} as Record<Platform, Element[]>
+    );
+
+    Object.entries(cardsByPlatform).forEach(async ([platform, cards]) => {
+      switch (platform as Platform) {
+        case 'github': {
+          const { request: githubApiRequest } = await import('@octokit/request');
+          cards.forEach(async (card) => {
+            const repoName = card.getAttribute('data-repo')!;
+            const [owner, repo] = repoName.split('/');
+
+            const meta = await githubApiRequest('GET /repos/{owner}/{repo}', {
+              owner,
+              repo,
+              headers: {
+                'X-GitHub-Api-Version': '2022-11-28',
+              },
+            });
+
+            const repoMeta: RepoMeta = {
+              description: meta.data.description,
+              language: meta.data.language,
+              license: meta.data.license?.spdx_id || null,
+              forks: meta.data.forks_count,
+              stars: meta.data.stargazers_count,
+            };
+
+            updateCardUI(card, repoMeta);
+          });
+          break;
+        }
+        case 'gitea':
+        case 'forgejo': {
+          cards.forEach(async (card) => {
+            const url = card.getAttribute('href');
+            const repoName = card.getAttribute('data-repo')!;
+            const host = url?.substring(0, url.indexOf(repoName) - 1);
+            if (!host) return;
+
+            try {
+              const response = await fetch(`${host}/api/v1/repos/${repoName}`);
+              const data = await response.json();
+              const repoMeta: RepoMeta = {
+                description: data.description,
+                language: data.language,
+                // Gitea and Forgejo do not provide license information in the API response.
+                // And infer license type on client side is expensive.
+                license: null,
+                forks: data.forks_count,
+                stars: data.stars_count,
+              };
+
+              updateCardUI(card, repoMeta);
+            } catch (error) {
+              console.error(`Failed to fetch repo data for ${repoName}:`, error);
+            }
+          });
+        }
+      }
+    });
+  }
+
+  document.addEventListener('astro:after-swap', init);
+  init();
+</script>

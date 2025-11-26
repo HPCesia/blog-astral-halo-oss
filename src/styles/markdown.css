@@ -1,0 +1,315 @@
+@reference './global.css';
+
+article {
+  /* 标题通用样式 */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    display: inline-block;
+    width: 100%;
+    margin: 1rem 0 0.5rem;
+    font-weight: bold;
+    position: relative;
+
+    a {
+      padding: 0 0.5rem;
+      opacity: 0;
+      text-decoration: none;
+      color: var(--color-primary);
+      transition: opacity 0.2s ease-in-out;
+    }
+
+    &:hover {
+      a {
+        opacity: 1;
+      }
+    }
+  }
+
+  /* 各级标题特殊样式 */
+  h1 {
+    @apply text-3xl;
+  }
+
+  h2 {
+    @apply text-2xl;
+  }
+
+  h3 {
+    @apply text-xl;
+  }
+
+  h4 {
+    @apply text-lg;
+  }
+
+  h5,
+  h6 {
+    @apply text-base;
+  }
+
+  /* 基础文本元素 */
+  @apply wrap-break-word;
+
+  p:not(:first-child, :last-child) {
+    margin: 0.75rem 0;
+  }
+
+  a:not(.card, [data-pswp-src]) {
+    @apply text-primary underline decoration-dashed;
+  }
+
+  del {
+    @apply line-through opacity-70;
+  }
+
+  /* 媒体元素 */
+  inline img {
+    display: inline;
+    max-height: 2em;
+    vertical-align: middle;
+    margin: 0 0.25em;
+    object-fit: contain;
+    width: auto;
+    border-radius: 0.25rem;
+  }
+
+  a[data-pswp-src] {
+    display: block;
+    overflow: hidden;
+    width: fit-content;
+    height: fit-content;
+    position: relative;
+    margin-inline: auto;
+    margin-top: calc(var(--spacing, 0.25rem) * 4);
+    margin-bottom: calc(var(--spacing, 0.25rem) * 6);
+    cursor: zoom-in;
+
+    @apply xs:max-w-4/5 max-w-full sm:max-w-3/4 md:max-w-3/5;
+
+    img {
+      border-radius: var(--radius-md, 0.375rem);
+      max-height: 40rem;
+    }
+  }
+
+  hr {
+    margin: 1.5rem 0.25rem;
+    border: 1px dashed;
+  }
+
+  /* 列表样式 */
+  ul:not(.menu):not(.menu *),
+  ol {
+    margin-top: 0.5rem;
+  }
+
+  ol {
+    counter-reset: li;
+
+    > li {
+      position: relative;
+      padding: 0.25rem 0.25rem 0.25rem 1.8em;
+
+      &::before {
+        position: absolute;
+        left: 0;
+        margin-top: 0.25em;
+        width: 1.5em;
+        height: 1.5em;
+        content: counter(li);
+        counter-increment: li 1;
+        font-size: 0.75em;
+        line-height: 1.5em;
+        text-align: center;
+        border-radius: 9999px;
+
+        @apply bg-primary/50 text-primary;
+      }
+
+      p:first-child {
+        margin-top: 0;
+      }
+    }
+  }
+
+  ul:not(.menu):not(.menu *) > li {
+    position: relative;
+    padding: 0.25rem 0.25rem 0.25rem 1.4em;
+
+    &:not(:has(input[type='checkbox']))::before {
+      position: absolute;
+      top: 0.6em;
+      left: 0.25em;
+      width: 0.75em;
+      height: 0.75em;
+      content: '';
+      border: 0.25em solid;
+      border-radius: 9999px;
+
+      @apply border-primary/75;
+    }
+
+    > input[type='checkbox'] {
+      position: absolute;
+      top: calc(0.25rem + 0.25em);
+      left: 0;
+      width: 0.85em;
+      height: 0.85em;
+      appearance: none;
+      border: 0.125em solid;
+      border-radius: 0.25em;
+      transition: 300ms all ease;
+
+      &:checked {
+        @apply bg-primary/75;
+
+        &::after {
+          content: '✓';
+          position: absolute;
+          font-size: 0.75em;
+          line-height: 0.75em;
+          color: var(--colors-primary-content);
+        }
+      }
+    }
+  }
+
+  /* 代码样式 */
+  .expressive-code {
+    &:where(:not(.card-body > :only-child)) {
+      &:where(:not(:first-child)) {
+        margin-top: 1rem;
+      }
+      &:where(:not(:last-child)) {
+        margin-bottom: 1rem;
+      }
+    }
+    &where(.card-body > :only-child) {
+      pre,
+      .frame .header {
+        @apply rounded-t-none;
+      }
+    }
+  }
+
+  code:not(pre code) {
+    padding: 0 0.25rem;
+
+    @apply bg-primary/10 text-primary rounded-md;
+  }
+
+  /* 引用块样式 */
+  blockquote {
+    @apply border-l-4;
+
+    --color-blockquote-callout: var(--color-neutral-500);
+    padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+    margin-block: 0.5rem;
+    border-radius: var(--radius-sm, 0.25rem);
+    background-color: color-mix(in oklab, var(--color-blockquote-callout) 10%, transparent);
+    border-color: var(--color-blockquote-callout);
+
+    /* Obsidian Callout Style */
+    &[data-callout] {
+      @apply grid grid-cols-1;
+
+      > .callout-title {
+        @apply flex flex-row items-center gap-2 py-0 pl-0 pr-10 text-lg font-semibold;
+
+        color: var(--color-blockquote-callout);
+
+        svg {
+          @apply h-5 w-5;
+        }
+
+        &:not(.collapse-title) {
+          @apply mb-2;
+        }
+
+        &.collapse-title {
+          @apply min-h-9;
+        }
+      }
+
+      &.collapse > input[type='checkbox'] {
+        @apply min-h-9;
+      }
+
+      &.collapse-arrow .collapse-title::after {
+        top: 1.3rem;
+      }
+
+      > .collapse-content {
+        @apply p-0;
+      }
+    }
+
+    &[data-callout='tip'],
+    &[data-callout='hint'],
+    &[data-callout='important'] {
+      --color-blockquote-callout: var(--color-primary);
+    }
+    &[data-callout='info'],
+    &[data-callout='abstract'],
+    &[data-callout='summary'],
+    &[data-callout='tldr'],
+    &[data-callout='todo'],
+    &[data-callout='help'],
+    &[data-callout='faq'] {
+      --color-blockquote-callout: var(--color-info);
+    }
+    &[data-callout='success'],
+    &[data-callout='check'],
+    &[data-callout='done'] {
+      --color-blockquote-callout: var(--color-success);
+    }
+    &[data-callout='warning'],
+    &[data-callout='attention'],
+    &[data-callout='caution'],
+    &[data-callout='question'] {
+      --color-blockquote-callout: var(--color-warning);
+    }
+    &[data-callout='danger'],
+    &[data-callout='bug'],
+    &[data-callout='failure'],
+    &[data-callout='fail'],
+    &[data-callout='missing'] {
+      --color-blockquote-callout: var(--color-error);
+    }
+    &[data-callout='example'] {
+      --color-blockquote-callout: var(--color-indigo-500);
+    }
+  }
+
+  /* 表格样式 */
+  table {
+    @apply relative w-full text-left text-sm;
+
+    :where(thead tr, tbody tr:not(:last-child), tbody tr:first-child:last-child) {
+      @apply border-b-base-200 border-b-2;
+    }
+
+    :where(tfoot) {
+      @apply border-t-base-200 border-t-2;
+    }
+
+    :where(thead, tfoot) {
+      @apply bg-base-300/15 text-base-content/90 whitespace-nowrap text-xs font-bold;
+    }
+
+    :where(th, td) {
+      padding: 0.75rem 1rem;
+      vertical-align: middle;
+    }
+  }
+
+  /* 数学样式 */
+  mjx-container[display='true'] {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+}

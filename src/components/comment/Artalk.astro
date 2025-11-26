@@ -1,0 +1,73 @@
+---
+import { commentConfig, siteConfig } from '@/config';
+import { CDN } from '@constants/cdn';
+
+const artalkConfig = commentConfig.artalk!;
+---
+
+<div id="artalk-wrapper" class="mt-6"></div>
+
+<link rel="stylesheet" href={CDN.artalkCss} />
+
+<style is:inline>
+  .atk-grp-switcher {
+    display: flex;
+    overflow-x: scroll;
+    overflow-y: hidden;
+
+    & > span {
+      min-width: fit-content;
+    }
+  }
+  .artalk pre code *,
+  .atk-layer-wrap pre code * {
+    font-family: inherit !important;
+  }
+</style>
+
+<script
+  type="module"
+  is:inline
+  define:vars={{
+    artalkConfig,
+    siteConfig: {
+      title: siteConfig.title,
+      lang: siteConfig.lang,
+    },
+  }}
+>
+  import Artalk from 'https://esm.sh/artalk@2.9.1';
+
+  function setup() {
+    function getCurrentMode() {
+      if (!('darkMode' in localStorage)) {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      return localStorage.darkMode === 'true';
+    }
+
+    const warpper = document.getElementById('artalk-wrapper');
+    if (!warpper) return;
+    const artalk = Artalk.init({
+      el: warpper,
+      darkMode: getCurrentMode(),
+      pageKey: window.location.pathname,
+      pageTitle: document.title,
+      server: artalkConfig.serverURL,
+      site: siteConfig.title,
+      locale: artalkConfig.locale || siteConfig.lang,
+    });
+
+    document.addEventListener('blog:darkmode-change', (e) => {
+      const { isDark } = e.detail;
+      artalk.setDarkMode(isDark);
+    });
+
+    document.addEventListener('astro:before-swap', () => {
+      artalk.destroy();
+    });
+  }
+
+  document.addEventListener('astro:page-load', setup);
+  setup();
+</script>

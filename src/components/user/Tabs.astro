@@ -1,0 +1,65 @@
+---
+interface Props {
+  syncKey?: string;
+}
+
+const syncKey = Astro.props.syncKey;
+const tabsName = `tabs-${crypto.randomUUID()}`;
+
+const html = (await Astro.slots.render('default')).replaceAll(/{{{tabs-name}}}/g, tabsName);
+---
+
+<div
+  class="tabs bg-base-200 tabs-box border-base-content/25 rounded-none not-[.card-body>:only-child]:my-4 not-[.card-body>:only-child]:rounded-xl not-[.card-body>:only-child]:border"
+  {...syncKey ? { 'data-sync-key': syncKey } : {}}
+>
+  <Fragment set:html={html} />
+</div>
+
+<script>
+  interface SyncTabs {
+    [key: string]: number;
+  }
+
+  async function init() {
+    const tabsNeedSync = document.querySelectorAll('.tabs[data-sync-key]');
+    if (tabsNeedSync.length === 0) return;
+    const { listenKeys, map } = await import('nanostores');
+    const syncTabs = map<SyncTabs>();
+    tabsNeedSync.forEach((tab) => {
+      const syncKey = tab.getAttribute('data-sync-key')!;
+      const tabItems: NodeListOf<HTMLInputElement> = tab.querySelectorAll(
+        ':scope > input[type="radio"]'
+      );
+      if (syncKey in syncTabs.get()) {
+        const activeTabIndex = syncTabs.get()[syncKey];
+        if (activeTabIndex === -1) {
+          tabItems.forEach((tab) => tab.removeAttribute('checked'));
+        } else {
+          tabItems[activeTabIndex].setAttribute('checked', 'checked');
+        }
+      } else {
+        const activeTabIndex = Array.from(tabItems).findIndex((tab) => tab.checked);
+        syncTabs.setKey(syncKey, activeTabIndex);
+      }
+      tabItems.forEach((tab, index) => {
+        tab.addEventListener('change', () => {
+          if (tab.checked) {
+            syncTabs.setKey(syncKey, index);
+          }
+        });
+      });
+      listenKeys(syncTabs, [syncKey], (curr) => {
+        const activeTabIndex = curr[syncKey];
+        if (activeTabIndex === -1) {
+          tabItems.forEach((tab) => (tab.checked = false));
+        } else {
+          tabItems[activeTabIndex].checked = true;
+        }
+      });
+    });
+  }
+
+  document.addEventListener('astro:after-swap', init);
+  await init();
+</script>

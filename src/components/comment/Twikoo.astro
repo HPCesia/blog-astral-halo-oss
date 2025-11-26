@@ -1,0 +1,25 @@
+---
+import '@/styles/twikoo.css?url';
+import { CDN } from '@constants/cdn';
+---
+
+<div id="twikoo-wrap"></div>
+<script src={CDN.twikoo} crossorigin="anonymous" is:inline data-astro-rerun></script>
+<script>
+  import { commentConfig } from '@/config';
+  const twikooConfig = commentConfig.twikoo;
+
+  function setup() {
+    if (typeof twikoo === 'undefined') {
+      setTimeout(setup, 100);
+    } else {
+      twikoo.init({
+        el: '#twikoo-wrap',
+        ...twikooConfig!,
+      });
+    }
+  }
+
+  document.addEventListener('astro:page-load', setup);
+  setup();
+</script>

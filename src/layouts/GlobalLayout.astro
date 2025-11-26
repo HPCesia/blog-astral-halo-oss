@@ -1,0 +1,209 @@
+---
+import {
+  buildConfig,
+  fastActionsConfig,
+  profileConfig,
+  searchConfig,
+  siteConfig,
+} from '@/config';
+import '@/styles/global.css';
+import '@/styles/transition.css';
+import { css as monoFont } from '@assets/fonts/JetBrainsMapleMono-Regular.ttf';
+import Banner from '@components/Banner.astro';
+import FastActions from '@components/FastActions.astro';
+import ImageZoomLoader from '@components/misc/ImageZoomLoader.astro';
+import Navbar from '@components/Navbar.astro';
+import PageFooter from '@components/PageFooter.astro';
+import Search from '@components/Search.astro';
+import 'photoswipe/dist/photoswipe.css';
+import { pwaAssetsHead } from 'virtual:pwa-assets/head';
+import { pwaInfo } from 'virtual:pwa-info';
+
+interface Props {
+  title?: string;
+  description?: string;
+  lang?: string;
+  banner?: {
+    src: string;
+    basePath?: string;
+  };
+}
+
+let { title, lang } = Astro.props;
+const { description, banner } = Astro.props;
+
+let pageTitle: string;
+if (title) pageTitle = `${title} - ${siteConfig.title}`;
+else
+  pageTitle = `${siteConfig.title}${siteConfig.subtitle.length > 0 ? ` - ${siteConfig.subtitle}` : ''}`;
+
+if (!lang) lang = `${siteConfig.lang}`;
+const siteLang = lang.replace('_', '-');
+
+const commonFontFallback = `'Source Han Sans SC', 'Source Han Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif`;
+const monoFontFallback = `'Maple Mono', 'JetBrains Mono', 'Fira Code', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace`;
+---
+
+<!doctype html>
+<html lang={siteLang}>
+  <head>
+    <title>{pageTitle}</title>
+
+    <meta charset="UTF-8" />
+    <meta name="author" content={profileConfig.name} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:site_name" content={siteConfig.title} />
+    <meta property="og:url" content={Astro.url} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description || pageTitle} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={Astro.url} />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description || pageTitle} />
+
+    <meta name="viewport" content="width=device-width" />
+
+    <meta name="generator" content={Astro.generator} />
+
+    {
+      pwaAssetsHead.themeColor && (
+        <meta name="theme-color" content={pwaAssetsHead.themeColor.content} />
+      )
+    }
+    {pwaAssetsHead.links.map((link) => <link {...link} />)}
+    {pwaInfo && <Fragment set:html={pwaInfo.webManifest.linkTag} />}
+    <script src="@scripts/pwa.ts"></script>
+
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={siteConfig.title}
+      href={new URL('rss.xml', Astro.site)}
+    />
+
+    <script
+      is:inline
+      data-goatcounter="https://goatcounter.hpcesia.com/count"
+      async
+      src="https://goatcounter.hpcesia.com/count.js"
+    ></script>
+
+    <slot name="head" />
+  </head>
+  <body class="bg-base-100 text-base-content flex min-h-screen flex-col">
+    {fastActionsConfig.enable && <FastActions />}
+    <Navbar title={siteConfig.title}>
+      <slot name="header" />
+      {siteConfig.banner !== false && <Banner src={banner?.src} basePath={banner?.basePath} />}
+      <div id="body-wrap" class="w-full items-center md:px-4">
+        <slot />
+      </div>
+    </Navbar>
+    {searchConfig.enable && <Search />}
+    <PageFooter />
+    {siteConfig.banner !== false && <div id="page-height-extend" class="hidden" />}
+  </body>
+</html>
+
+{/* 初始化 Swup */}
+<script>
+  import SwupHeadPlugin from '@swup/head-plugin';
+  import SwupParallelPlugin from '@swup/parallel-plugin';
+  import SwupPreloadPlugin from '@swup/preload-plugin';
+  import SwupProgressPlugin from '@swup/progress-plugin';
+  import SwupScriptsPlugin from '@swup/scripts-plugin';
+  import SwupScrollPlugin from '@swup/scroll-plugin';
+  import Swup from 'swup';
+
+  import { siteConfig } from '@/config';
+
+  window.swup = new Swup({
+    containers: [
+      'main',
+      ...(siteConfig.banner === false
+        ? []
+        : [
+            ...(typeof siteConfig.banner.src === 'string'
+              ? ['#banner-img']
+              : ['#banner-img-light', '#banner-img-dark']),
+            '#banner-text',
+          ]),
+    ],
+    animationSelector: '[class*="swup-transition-"]',
+    linkSelector: 'a:not([href="#"])[href]',
+    plugins: [
+      new SwupHeadPlugin(),
+      new SwupParallelPlugin({
+        containers: [...(siteConfig.banner === false ? [] : ['#banner-img'])],
+      }),
+      new SwupPreloadPlugin(),
+      new SwupProgressPlugin({
+        delay: 2000,
+      }),
+      new SwupScriptsPlugin(),
+      new SwupScrollPlugin({
+        offset: () => (document.querySelector('#navbar') as HTMLDivElement).offsetHeight,
+      }),
+    ],
+  });
+
+  const dispatch = (name: string) => document.dispatchEvent(new Event(name));
+  window.swup.hooks.before('content:replace', () => dispatch('astro:before-swap'));
+  window.swup.hooks.on('content:replace', () => dispatch('astro:after-swap'));
+  window.swup.hooks.on('page:view', () => dispatch('astro:page-load'));
+</script>
+
+<script>
+  import { buildConfig } from '@/config';
+  import { convertTimeToRelative } from '@scripts/utils';
+
+  // 深色模式切换
+  function applyDarkMode() {
+    if (
+      localStorage.darkMode === 'true' ||
+      (!('darkMode' in localStorage) &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches)
+    ) {
+      document.documentElement.setAttribute('data-theme', buildConfig.themeNames.dark);
+    } else document.documentElement.setAttribute('data-theme', buildConfig.themeNames.light);
+  }
+
+  function setup() {
+    applyDarkMode();
+    convertTimeToRelative();
+  }
+
+  document.addEventListener('astro:after-swap', setup);
+  setup();
+</script>
+
+{buildConfig.enableImageZoom && <ImageZoomLoader />}
+
+<style is:global>
+  a[data-pwsp-src] {
+    cursor: zoom-in;
+  }
+</style>
+
+{/* 设置字体 */}
+<style
+  define:vars={{
+    commonFontFamily: `${commonFontFallback}`,
+    monoFontFamily: `'${monoFont.family}', ${monoFontFallback}`,
+  }}
+  is:global
+>
+  body {
+    font-family: var(--commonFontFamily);
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    /* Twikoo 的评论区使用的 PrismJS 会覆盖代码块的 font-family，所以用 !important */
+    font-family: var(--monoFontFamily) !important;
+  }
+</style>

@@ -1,0 +1,131 @@
+---
+import type { BlogPostData } from '@/types/data';
+import { getCategoryUrl, getSortedPosts, getTags, getTagUrl } from '@/utils/content-utils';
+import ProfileCard from '@components/aside/ProfileCard.astro';
+import TOC from '@components/aside/TOC.astro';
+import Button from '@components/widgets/Button.astro';
+import MetaList from '@components/widgets/MetaList.astro';
+import MainLayout from '@layouts/MainLayout.astro';
+import { t } from '@utils/i18n';
+import { Icon } from 'astro-icon/components';
+
+const tagsMap = await getTags();
+const allPosts = await getSortedPosts();
+
+const tagPosts = new Map<string, { body: string; data: BlogPostData }[]>();
+for (const [tag] of tagsMap) {
+  const posts = allPosts.filter((post) => post.data.tags?.includes(tag)).slice(0, 3);
+  tagPosts.set(tag, posts);
+}
+const untaggedPosts = allPosts
+  .filter((post) => !post.data.tags || post.data.tags.length === 0)
+  .slice(0, 3);
+if (untaggedPosts.length > 0) tagPosts.set(t.meta.unTagged(), untaggedPosts);
+---
+
+<MainLayout title={t.navigation.archive.tags()}>
+  <div
+    class="card bg-base-200 border-base-300 swup-transition-fade mx-auto flex flex-col items-center border px-6 py-4"
+  >
+    <div class="tooltip md:tooltip-right tooltip-bottom mx-auto w-fit">
+      <h1 class="text-center text-3xl font-bold">{t.navigation.archive.tags()}</h1><div
+        class="tooltip-content flex flex-col"
+      >
+        <div>
+          {t.status.postsCount(allPosts.length) + ', '}
+        </div>
+        <div>
+          {t.status.tagsCount(tagsMap.size)}
+        </div>
+      </div>
+    </div>
+    <ul
+      class="timeline timeline-snap-icon timeline-vertical max-md:timeline-compact w-full p-4"
+    >
+      {
+        Array.from(tagPosts.entries()).map(([tag, posts], index) => (
+          <li>
+            {index > 0 && <hr />}
+            <div class="timeline-middle">
+              <Icon
+                name="material-symbols:add-circle-rounded"
+                height="1.25rem"
+                width="1.25rem"
+              />
+            </div>
+            <div class:list={[`timeline-${index % 2 === 0 ? 'start' : 'end'}`, 'w-full']}>
+              <div
+                class:list={[
+                  index % 2 === 0 && 'md:flex-row-reverse',
+                  'mx-4 flex flex-row items-center justify-between',
+                ]}
+              >
+                <h2 class="scroll-mt-20 text-2xl font-bold" id={`heading-${tag}`}>
+                  {tag}
+                  <span class="text-base-content/60 ml-2 text-base">
+                    ({tagsMap.get(tag) || 0})
+                  </span>
+                </h2>
+                <Button href={getTagUrl(tag)} title={tag} class="pl-3">
+                  {t.button.more()}
+                  <Icon
+                    name="material-symbols:chevron-right-rounded"
+                    height="1.5rem"
+                    width="1.5rem"
+                  />
+                </Button>
+              </div>
+              <ul class="list">
+                {posts.map(({ data }) => (
+                  <li class="list-row">
+                    <div class="list-col-grow">
+                      <a
+                        href={`/posts/${data.slug}`}
+                        title={data.title}
+                        class="text-lg font-bold"
+                      >
+                        {data.title}
+                      </a>
+                      <MetaList
+                        class="text-base-content/60 mt-2 items-start text-sm"
+                        metas={[
+                          {
+                            icon: 'material-symbols:category-outline-rounded',
+                            text: data.category || t.meta.unCategorized(),
+                            link: getCategoryUrl(data.category),
+                          },
+                          {
+                            icon: 'material-symbols:tag-rounded',
+                            title: t.meta.tags(),
+                            group: data.tags.map((tag) => ({
+                              icon: 'material-symbols:tag-rounded',
+                              text: tag,
+                              link: getTagUrl(tag),
+                            })),
+                          },
+                        ]}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <hr />
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+  <Fragment slot="aside-fixed">
+    <ProfileCard />
+  </Fragment>
+  <Fragment slot="aside-sticky">
+    <TOC
+      headings={Array.from(tagsMap.keys()).map((tag) => ({
+        text: tag,
+        slug: `heading-${tag}`,
+        depth: 2,
+      }))}
+    />
+  </Fragment>
+</MainLayout>

@@ -1,0 +1,24 @@
+{
+  "name": "vite-plugin-font-wasm",
+  "exports": {
+    ".": {
+      "import": "./src/unplugin.ts"
+    }
+  },
+  "scripts": {
+    "postinstall": "cn-font-split i wasm32-wasip1"
+  },
+  "dependencies": {
+    "cn-font-metrics": "^2.1.6",
+    "cn-font-split": "^7.2.9",
+    "fast-glob": "^3.3.3",
+    "fs-extra": "^11.3.0",
+    "micromatch": "^4.0.8",
+    "rollup-plugin-node-externals": "^8.0.0",
+    "unplugin": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/micromatch": "^4.0.9"
+  }
+}

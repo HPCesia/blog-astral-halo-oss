@@ -1,0 +1,61 @@
+---
+import { asideConfig, commentConfig, siteConfig } from '@/config';
+import ProfileCard from '@components/aside/ProfileCard.astro';
+import RecentCommentsCard from '@components/aside/RecentCommentsCard.tsx';
+import SiteInfoCard from '@components/aside/SiteInfoCard.astro';
+import CategoryBar from '@components/misc/CategoryBar.astro';
+import PostsPage from '@components/PostsPage.astro';
+import MainLayout from '@layouts/MainLayout.astro';
+import { getCategories, getSortedPosts } from '@utils/content-utils';
+import { t } from '@utils/i18n';
+
+export async function getStaticPaths() {
+  const posts = await getSortedPosts();
+  const categories = [
+    ...new Set(
+      posts.map((post) => post.data.category || t?.meta.unCategorized() || 'uncategorized')
+    ),
+  ];
+  return categories
+    .map((category) => {
+      const categoryPosts = posts.filter((post) => post.data.category === category);
+      const pageNum = Math.ceil(categoryPosts.length / siteConfig.postsPerPage);
+      category = category.replaceAll(/[\\/]/g, '-');
+      return Array.from({ length: pageNum }, (_, i) => ({
+        params: { category: category, page: (i + 1).toString() },
+        props: {
+          posts: categoryPosts.slice(
+            i * siteConfig.postsPerPage,
+            (i + 1) * siteConfig.postsPerPage
+          ),
+          currentPage: i + 1,
+        },
+      }));
+    })
+    .flat();
+}
+
+const { posts, currentPage } = Astro.props;
+const { category } = Astro.params;
+const categories = await getCategories();
+---
+
+<MainLayout title={category}>
+  <CategoryBar categories={Array.from(categories.keys())} currentCategory={category} />
+  <PostsPage
+    posts={posts}
+    currentPage={currentPage}
+    baseUrl={`/archives/categories/${category}`}
+  />
+  <Fragment slot="aside-fixed">
+    <ProfileCard />
+    <SiteInfoCard />
+  </Fragment>
+  <Fragment slot="aside-sticky">
+    {
+      commentConfig.enable && asideConfig.recentComment.enable && (
+        <RecentCommentsCard client:visible />
+      )
+    }
+  </Fragment>
+</MainLayout>

@@ -1,0 +1,46 @@
+---
+import { siteConfig } from '@/config';
+import PostsPage from '@components/PostsPage.astro';
+import ProfileCard from '@components/aside/ProfileCard.astro';
+import MainLayout from '@layouts/MainLayout.astro';
+import { getSortedPosts } from '@utils/content-utils';
+import { t } from '@utils/i18n';
+
+export async function getStaticPaths() {
+  const posts = await getSortedPosts();
+  const tags = [
+    ...new Set(
+      posts
+        .map((post) => (post.data.tags.length > 0 ? post.data.tags : [t.meta.unTagged()]))
+        .flat()
+    ),
+  ];
+  return tags
+    .map((tag) => {
+      const tagPosts =
+        tag === t.meta.unTagged()
+          ? posts.filter((post) => post.data.tags.length === 0)
+          : posts.filter((post) => post.data.tags.includes(tag));
+      const pageNum = Math.ceil(tagPosts.length / siteConfig.postsPerPage);
+      tag = tag.replaceAll(/[\\/]/g, '-');
+      return Array.from({ length: pageNum }, (_, i) => ({
+        params: { tag: tag, page: (i + 1).toString() },
+        props: { posts: tagPosts, currentPage: i + 1 },
+      }));
+    })
+    .flat();
+}
+
+const { posts, currentPage } = Astro.props;
+const { tag } = Astro.params;
+---
+
+<MainLayout title={tag}>
+  <div class="mx-auto flex max-w-(--breakpoint-xl) flex-col items-center" slot="header-content">
+    <h1 class="my-8 text-3xl font-bold">{tag}</h1>
+  </div>
+  <PostsPage posts={posts} currentPage={currentPage} baseUrl={`/archives/tags/${tag}`} />
+  <Fragment slot="aside-fixed">
+    <ProfileCard />
+  </Fragment>
+</MainLayout>
