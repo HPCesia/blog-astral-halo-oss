@@ -1,0 +1,20 @@
+{
+  "name": "@astral-halo/cli-tool",
+  "scripts": {
+    "new": "tsx src/new.ts",
+    "pub": "tsx src/pub.ts"
+  },
+  "dependencies": {
+    "@commander-js/extra-typings": "^14.0.0",
+    "@inquirer/core": "^10.3.0",
+    "@inquirer/prompts": "^7.9.0",
+    "commander": "^14.0.1",
+    "inquirer": "^12.10.0",
+    "js-yaml": "^4.1.0",
+    "os-locale": "^6.0.2",
+    "tsx": "^4.20.6"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9"
+  }
+}

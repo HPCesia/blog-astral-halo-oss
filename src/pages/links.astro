@@ -1,0 +1,124 @@
+---
+import { linksConfig } from '@/config';
+import PostInfo from '@components/misc/PostInfo.astro';
+import ImageWrapper from '@components/utils/ImageWrapper.astro';
+import Markdown from '@components/utils/Markdown.astro';
+import PostPageLayout from '@layouts/PostPageLayout.astro';
+import { getAllReferences } from '@utils/content-utils';
+import { t } from '@utils/i18n';
+import { getEntry, render } from 'astro:content';
+
+const md = await getEntry('spec', 'links');
+
+const { Content, headings, remarkPluginFrontmatter } = md
+  ? await render(md)
+  : {
+      Content: Fragment,
+      headings: [],
+      remarkPluginFrontmatter: { references: [] },
+    };
+
+const allReferences = await getAllReferences();
+let allRefByCurrent: typeof allReferences = [];
+let references: {
+  reference: string;
+  context: string;
+  id: string;
+}[] = [];
+if (md) {
+  allRefByCurrent = allReferences.filter((it) => it.refBy.id === md.id);
+  references = remarkPluginFrontmatter.references || [];
+}
+
+const groupHeadings = linksConfig.items.map((item) => ({
+  depth: 2,
+  slug: `links-group-${item.groupName.toLowerCase().replace(/\s/g, '-')}`,
+  text: item.groupName,
+}));
+---
+
+<PostPageLayout
+  title={t.navigation.friendLinks()}
+  comment={md?.data.comment}
+  headings={[...groupHeadings, ...headings]}
+>
+  <Fragment slot="header-content">
+    <PostInfo title={t.navigation.friendLinks()} />
+  </Fragment>
+  {
+    linksConfig.items.map((item) => (
+      <Fragment>
+        <div class="mt-4 mb-1 grid grid-cols-[auto_minmax(0,1fr)] items-baseline justify-between gap-4">
+          {' '}
+          <h2
+            class="text-2xl font-bold"
+            id={`links-group-${item.groupName.toLowerCase().replace(/\s/g, '-')}`}
+          >
+            {item.groupName}
+          </h2>
+          {item.groupDescription && (
+            <span class="text-base-content/60 line-clamp-1 text-right text-sm font-medium">
+              {item.groupDescription}
+            </span>
+          )}
+        </div>
+        <hr class="text-base-content/25 my-1" />
+        <div class="flex flex-wrap">
+          {item.groupItems.map((item) => (
+            <div class="card max-md:card-side link-card">
+              <figure class="shrink-0">
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="w-full"
+                  title={item.name}
+                >
+                  <ImageWrapper src={item.avatar} class="max-md:h-24 max-md:w-24 md:h-48" />
+                </a>
+              </figure>
+              <div class="card-body from-base-300 to-base-100 bg-linear-150 px-4 py-2">
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="w-fit"
+                  title={item.name}
+                >
+                  <h3 class="card-title line-clamp-1">{item.name}</h3>
+                </a>
+                {item.description && (
+                  <p class="text-base-content/60 line-clamp-2 text-sm">{item.description}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Fragment>
+    ))
+  }
+  <hr class="text-base-content/25 mt-8" />
+  <Markdown
+    bidirectional-references={md
+      ? {
+          references,
+          allRefByCurrent,
+        }
+      : undefined}
+  >
+    <Content />
+  </Markdown>
+</PostPageLayout>
+
+<style>
+  @reference '@/styles/global.css';
+
+  .link-card {
+    @apply border-base-300 m-1 overflow-hidden border;
+    @apply w-full md:w-[calc(25%-calc(var(--spacing)*2))] lg:w-[calc(20%-calc(var(--spacing)*2))];
+
+    figure {
+      @apply min-w-23;
+    }
+  }
+</style>

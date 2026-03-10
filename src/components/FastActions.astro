@@ -1,0 +1,177 @@
+---
+import { articleConfig, fastActionsConfig } from '@/config';
+import { t } from '@utils/i18n';
+import { Icon } from 'astro-icon/components';
+import Button from './widgets/Button.astro';
+import DarkModeButton from './widgets/DarkModeButton.astro';
+import TocButton from './widgets/SideToolBar/TocButton.tsx';
+---
+
+<div
+  id="fast-actions"
+  class="fixed right-0 bottom-10 z-30 grid grid-cols-1 gap-2"
+  aria-label={t.info.fastActions()}
+>
+  <div
+    id="fab-hide"
+    class="grid translate-x-full grid-cols-1 gap-2 pr-4 duration-500 ease-in-out"
+    inert
+  >
+    {
+      fastActionsConfig.items.map((item) => {
+        const { icon, text } = item;
+        if ('href' in item)
+          return (
+            <Button
+              href={item.href}
+              target={item.blank ? '_blank' : undefined}
+              title={text}
+              aria-label={text}
+              {...(item.extraAttr || {})}
+            >
+              <Icon name={icon} slot="icon" />
+            </Button>
+          );
+        if ('onclick' in item) {
+          if (typeof item.onclick === 'string')
+            return (
+              <Button
+                onclick={item.onclick}
+                title={text}
+                aria-label={text}
+                {...(item.extraAttr || {})}
+              >
+                <Icon name={icon} slot="icon" />
+              </Button>
+            );
+          return (
+            <Button
+              id={`fab-${item.onclick!.id}`}
+              title={text}
+              aria-label={text}
+              {...(item.extraAttr || {})}
+            >
+              <Icon name={icon} slot="icon" />
+            </Button>
+          );
+        }
+        return (
+          <Button title={text} aria-label={text} {...(item.extraAttr || {})}>
+            <Icon name={icon} slot="icon" />
+          </Button>
+        );
+      })
+    }
+    <DarkModeButton id="fab-dark-mode" class="btn-circle btn-secondary btn-sm" />
+  </div>
+  <div
+    id="fab-show"
+    class="grid translate-x-full grid-cols-1 gap-2 pr-4 duration-500 ease-in-out"
+  >
+    <Button
+      id="fab-show-more"
+      class="btn-circle btn-secondary btn-sm"
+      aria-expanded="false"
+      aria-label={t.button.more()}
+      aria-controls="fab-hide"
+    >
+      <Icon name="material-symbols:settings-rounded" class="animate-spin" />
+    </Button>
+    {
+      articleConfig.toc && (
+        <TocButton client:media="(width <= 80rem)">
+          <Icon name="material-symbols:toc-rounded" />
+        </TocButton>
+      )
+    }
+    <Button id="fab-back-to-top" class="group btn-circle btn-secondary btn-sm">
+      <span
+        id="fab-read-percentage"
+        aria-label={t.info.readingPercentage()}
+        class="absolute text-sm opacity-0 duration-300 group-hover:opacity-0">0</span
+      >
+      <Icon
+        id="fab-back-to-top-icon"
+        name="material-symbols:arrow-upward-rounded"
+        class="duration-300 group-hover:opacity-100"
+      />
+    </Button>
+  </div>
+</div>
+
+<script>
+  import { fastActionsConfig } from '@/config';
+  import { getReadingProgress } from '@scripts/utils';
+
+  const fabItems = fastActionsConfig.items;
+
+  function setup() {
+    const fabShow = document.getElementById('fab-show');
+    const fabHide = document.getElementById('fab-hide');
+    const fabShowMore = document.getElementById('fab-show-more');
+    const fabBackToTop = document.getElementById('fab-back-to-top');
+    const fabBackToTopIcon = document.getElementById('fab-back-to-top-icon');
+    const fabReadPercent = document.getElementById('fab-read-percentage');
+
+    let isExpanded = JSON.parse(fabShowMore?.getAttribute('aria-expanded') || 'false');
+
+    fabShowMore?.addEventListener('click', () => {
+      isExpanded = !isExpanded;
+      fabShowMore.setAttribute('aria-expanded', String(isExpanded));
+      if (isExpanded) {
+        fabHide?.classList.remove('translate-x-full');
+        fabHide?.removeAttribute('inert');
+      } else {
+        fabHide?.classList.add('translate-x-full');
+        fabHide?.setAttribute('inert', 'true');
+      }
+    });
+
+    fabBackToTop?.addEventListener('click', () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    });
+
+    const bottomPos =
+      (
+        document.getElementById('page-comment') ||
+        document.getElementById('page-footer') ||
+        document.getElementById('footer')
+      )?.offsetTop || document.documentElement.scrollHeight;
+
+    window.addEventListener('scroll', () => {
+      // 控制工具栏显隐
+      if (window.scrollY > 0) {
+        fabShow?.classList.remove('translate-x-full');
+      } else {
+        fabShow?.classList.add('translate-x-full');
+        fabShowMore?.setAttribute('aria-expanded', 'false');
+        isExpanded = false;
+        document.getElementById('fab-hide')?.classList.add('translate-x-full');
+      }
+      // 控制进度条
+      const scrolledPercentage = getReadingProgress(bottomPos);
+      if (fabReadPercent) fabReadPercent.textContent = `${scrolledPercentage}`;
+      const isNearEnd = scrolledPercentage >= 99 || scrolledPercentage < 0;
+      if (isNearEnd) {
+        fabReadPercent?.classList.add('opacity-0');
+        fabBackToTopIcon?.classList.remove('opacity-0');
+      } else {
+        fabReadPercent?.classList.remove('opacity-0');
+        fabBackToTopIcon?.classList.add('opacity-0');
+      }
+    });
+
+    fabItems.forEach((item) => {
+      if ('onclick' in item && item.onclick && typeof item.onclick !== 'string') {
+        const fabEl = document.getElementById('fab-' + item.onclick.id);
+        if (fabEl) fabEl.addEventListener('click', item.onclick.function);
+      }
+    });
+  }
+
+  document.addEventListener('astro:page-load', setup);
+  setup();
+</script>

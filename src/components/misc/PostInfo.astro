@@ -1,0 +1,80 @@
+---
+import { articleConfig, siteConfig } from '@/config';
+import { default as MetaList, type MetaItem } from '@components/widgets/MetaList.astro';
+import { getCategoryUrl, getTagUrl } from '@utils/content-utils';
+import { t } from '@utils/i18n';
+import type { HTMLAttributes } from 'astro/types';
+
+interface Props extends HTMLAttributes<'div'> {
+  title: string;
+  publishedAt?: Date;
+  category?: string;
+  tags?: string[];
+  wordCount?: number;
+  readingTime?: number;
+  lang?: string;
+  class?: string;
+}
+
+const {
+  title,
+  publishedAt,
+  category,
+  tags,
+  wordCount,
+  readingTime,
+  lang,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const metas: MetaItem[] = [
+  publishedAt && {
+    icon: 'material-symbols:calendar-clock-outline-rounded',
+    title: t.meta.publishedAt(),
+    text: publishedAt.toLocaleDateString(lang || siteConfig.lang.replace('_', '-')),
+    time: publishedAt,
+  },
+  articleConfig.wordCount && typeof wordCount === 'number'
+    ? {
+        icon: 'material-symbols:docs-rounded',
+        title: t.meta.wordsCount(),
+        text: t.status.wordsCount(wordCount),
+      }
+    : undefined,
+  articleConfig.readingTime && typeof readingTime === 'number'
+    ? {
+        icon: 'material-symbols:nest-clock-farsight-analog-rounded',
+        title: t.meta.readingTime(),
+        text: t.status.readTime(readingTime),
+      }
+    : undefined,
+  category
+    ? {
+        icon: 'material-symbols:category-outline-rounded',
+        title: t.meta.category(),
+        text: category,
+        link: getCategoryUrl(category),
+      }
+    : undefined,
+  tags && tags.length > 0
+    ? {
+        icon: 'material-symbols:tag-rounded',
+        title: t.meta.tags(),
+        group: tags.map((tag) => ({
+          text: tag,
+          link: getTagUrl(tag),
+        })),
+      }
+    : undefined,
+];
+---
+
+<div
+  id="post-info"
+  class:list={['grid grid-rows-[auto_minmax(0,1fr)] space-y-2 max-md:px-3', className]}
+  {...rest}
+>
+  <h1 class="text-3xl font-bold">{title}</h1>
+  <MetaList metas={metas} />
+</div>

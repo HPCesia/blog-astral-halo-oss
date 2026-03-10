@@ -1,0 +1,80 @@
+---
+import { getCategoryUrl } from '@utils/content-utils';
+import { t } from '@utils/i18n';
+
+interface Props {
+  categories: string[];
+  currentCategory?: string;
+}
+
+const { categories, currentCategory } = Astro.props;
+---
+
+<div
+  id="category-bar"
+  class="card border-base-300 bg-base-200 swup-transition-slide mb-4 w-full border"
+>
+  <nav
+    class="card-body flex flex-row items-center gap-2 overflow-auto px-2 py-3"
+    title={t.navigation.archive.categories()}
+    aria-label={t.navigation.archive.categories()}
+    role="navigation"
+  >
+    <a
+      href={`/`}
+      class:list={[
+        'btn btn-ghost btn-primary h-8 min-h-8 rounded-md px-3 py-0',
+        currentCategory ? 'not-hover:text-base-content' : 'btn-active',
+      ]}
+    >
+      {t.navigation.recentPosts()}
+    </a>
+    {
+      categories.map((category) => (
+        <a
+          href={getCategoryUrl(category)}
+          class:list={[
+            'btn btn-ghost btn-primary h-8 min-h-8 rounded-md px-3 py-0',
+            currentCategory === category ? 'btn-active' : 'not-hover:text-base-content',
+          ]}
+        >
+          {category}
+        </a>
+      ))
+    }
+  </nav>
+</div>
+
+<script>
+  import { pathMatch, pathsEqual } from '@utils/url-utils';
+
+  function setup() {
+    const hasCategoryBar = (url: string) =>
+      pathMatch(/\/archives\/categories\/.+\/\d/, url) || pathsEqual(url, '/');
+
+    window.swup?.hooks.before('visit:start', (visit) => {
+      if (hasCategoryBar(visit.to.url)) {
+        const categoryBar = document.getElementById('category-bar');
+        categoryBar?.classList.remove('swup-transition-slide');
+      }
+    });
+    window.swup?.hooks.on('content:replace', (visit) => {
+      if (hasCategoryBar(visit.from.url)) {
+        const categoryBar = document.getElementById('category-bar');
+        categoryBar?.classList.remove('swup-transition-slide');
+      }
+    });
+    window.swup?.hooks.on('animation:in:end', (visit) => {
+      if (hasCategoryBar(visit.from.url)) {
+        const categoryBar = document.getElementById('category-bar');
+        categoryBar?.classList.add('swup-transition-slide');
+      }
+    });
+  }
+
+  if (window.swup) {
+    setup();
+  } else {
+    document.addEventListener('swup:enable', setup);
+  }
+</script>

@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+@import '@catppuccin/tailwindcss/macchiato.css';
+
+@plugin 'daisyui' {
+  /**
+   * You can modify the light and dark themes by editing below.
+   * But remember to modify any css selectors that depend on the theme colors.
+   * For example, if you change the dark theme to DaisyUI's build-in `black` theme,
+   * you need to replace all `[data-theme="dark"]` in source files to `[data-theme="black"]`.
+   * `buildConfig.themeNames` in `src/config,ts` is also need to be updated accordingly.
+   */
+  themes: false;
+}
+
+@plugin './catppuccin.latte.ts';
+@plugin './catppuccin.macchiato.ts';
+
+@custom-variant dark (&:where([data-theme="macchiato"], [data-theme="macchiato"] * ));
+
+@theme {
+  --breakpoint-xs: 30rem;
+  --tracking-extra-wide: 0.25em;
+}
+
+html {
+  scroll-behavior: smooth;
+}
