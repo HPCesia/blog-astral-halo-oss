@@ -1,0 +1,197 @@
+---
+import { siteConfig } from '@/config';
+import { pathMatch, pathsEqual, url } from '@utils/url-utils';
+import { Icon } from 'astro-icon/components';
+import ImageWrapper from './utils/ImageWrapper.astro';
+
+interface Props {
+  src?: string;
+  basePath?: string;
+}
+
+const siteBanner = siteConfig.banner;
+if (siteBanner === false) throw Error('Should not show this error');
+
+const src = Astro.props.src || siteBanner.src;
+
+function getBannerHeight(path: string) {
+  if (siteConfig.banner === false) {
+    console.error('Banner is disabled. Should not show this error, must be a bug');
+    return null;
+  }
+  if (pathsEqual(url('/'), path)) {
+    return siteConfig.banner.homepageHeight;
+  }
+  if (pathMatch(/\/posts\/.*/, path)) {
+    return siteConfig.banner.postHeight;
+  }
+  for (const { pagePathRegex, height } of siteConfig.banner.pagesHeight) {
+    if (pathMatch(pagePathRegex, path)) {
+      return height;
+    }
+  }
+  return siteConfig.banner.defaultHeight;
+}
+const path = Astro.url;
+const bannerHeight = getBannerHeight(path.pathname);
+---
+
+<div
+  id="banner"
+  class="relative max-h-screen overflow-hidden duration-1000"
+  style={{
+    height: bannerHeight,
+    scale: '105%',
+    'transition-property': 'height transform',
+  }}
+>
+  <div class="h-full w-full">
+    <div id="banner-text">
+      {
+        Astro.url.pathname === '/' && siteConfig.banner && siteConfig.banner.text !== null && (
+          <h1 class="absolute z-10 grid h-full w-full place-items-center text-4xl font-bold text-shadow-md md:px-12">
+            <span class="text-center">{siteConfig.banner.text || siteConfig.subtitle}</span>
+          </h1>
+        )
+      }
+    </div>
+    {
+      (() => {
+        if (typeof src === 'string')
+          return (
+            <ImageWrapper
+              id="banner-img"
+              src={src}
+              class="swup-transition-parallel-slide absolute! h-full w-full overflow-hidden"
+              basePath={Astro.props.basePath}
+            />
+          );
+        else
+          return (
+            <ImageWrapper
+              id="banner-img-light"
+              src={src.light}
+              class="swup-transition-parallel-slide absolute! h-full w-full overflow-hidden dark:hidden"
+            />
+            <ImageWrapper
+              id="banner-img-dark"
+              src={src.dark}
+              class="swup-transition-parallel-slide absolute! h-full w-full overflow-hidden not-dark:hidden"
+            />
+          );
+      })()
+    }
+  </div>
+  <div
+    id="banner-mask"
+    class="from-base-100 to-base-100/0 absolute bottom-0 grid h-3/5 min-h-48 w-full bg-linear-0"
+  >
+    <Icon
+      name="material-symbols:keyboard-arrow-down-rounded"
+      class="text-base-content/60 relative mx-auto animate-bounce place-self-end duration-300"
+      width="4.5rem"
+      height="4rem"
+    />
+  </div>
+</div>
+
+<script>
+  import { siteConfig } from '@/config';
+  import { pathMatch, pathsEqual, url } from '@utils/url-utils';
+
+  function getBannerHeight(path: string) {
+    if (siteConfig.banner === false) {
+      console.error('Banner is disabled. Should not show this error, must be a bug');
+      return null;
+    }
+    if (pathsEqual(url('/'), path)) {
+      return siteConfig.banner.homepageHeight;
+    }
+    if (pathMatch(/\/posts\/.*/, path)) {
+      return siteConfig.banner.postHeight;
+    }
+    for (const { pagePathRegex, height } of siteConfig.banner.pagesHeight) {
+      if (pathMatch(pagePathRegex, path)) {
+        return height;
+      }
+    }
+    return siteConfig.banner.defaultHeight;
+  }
+
+  function setupBanner() {
+    const banner = document.getElementById('banner');
+    banner!.style.scale = '100%';
+    banner!.style.height = `calc((${getBannerHeight(window.location.pathname) as string}) + 4rem)`;
+    const bannerMask = banner?.querySelector('#banner-mask');
+    const icon = bannerMask?.querySelector('svg');
+    if (pathsEqual(url('/'), window.location.pathname)) {
+      icon?.classList.remove('hidden');
+      icon?.classList.remove('opacity-0');
+      window.addEventListener('scroll', () => {
+        const bannerHeight = banner!.clientHeight;
+        if (window.scrollY > bannerHeight / 2) {
+          icon?.classList.add('opacity-0');
+        } else {
+          icon?.classList.remove('opacity-0');
+        }
+      });
+    } else {
+      icon?.classList.add('hidden');
+    }
+  }
+
+  document.addEventListener('astro:after-swap', setupBanner);
+  setupBanner();
+
+  function swupSetupBanner() {
+    // 为页面添加额外高度，避免页面切换时出现跳跃式滚动
+    window.swup?.hooks.before('visit:start', () => {
+      const heightExtend = document.getElementById('page-height-extend');
+      if (!heightExtend) {
+        console.error('Height extend not found');
+        return;
+      }
+      heightExtend.classList.remove('hidden');
+    });
+
+    window.swup?.hooks.before('content:replace', () => {
+      const heightExtend = document.getElementById('page-height-extend');
+      if (!heightExtend) {
+        console.error('Height extend not found');
+        return;
+      }
+      heightExtend.classList.remove('hidden');
+    });
+
+    window.swup?.hooks.on('visit:end', () => {
+      const heightExtend = document.getElementById('page-height-extend');
+      heightExtend?.classList.add('hidden');
+    });
+
+    // 处理 Banner 图片切换
+    window.swup?.hooks.before('content:insert', (_, { containers }) => {
+      for (const container of containers) {
+        // 支持单模式和双模式 Banner
+        const isBannerImg = container.selector === '#banner-img' ||
+                          container.selector === '#banner-img-light' ||
+                          container.selector === '#banner-img-dark';
+        if (!isBannerImg) continue;
+
+        const prevWrapper = container.previous;
+        const nextWrapper = container.next;
+        const prevImg = prevWrapper.querySelector('img') as HTMLImageElement;
+        const nextImg = nextWrapper.querySelector('img') as HTMLImageElement;
+        if (prevImg.src !== nextImg.src) continue;
+        prevWrapper.classList.add('hidden');
+        prevWrapper.classList.remove('swup-transition-parallel-slide');
+        nextWrapper.classList.remove('swup-transition-parallel-slide');
+      }
+    });
+  }
+
+  if (window.swup) {
+    swupSetupBanner();
+  } else {
+    document.addEventListener('swup:enable', swupSetupBanner);
+  }
+</script>

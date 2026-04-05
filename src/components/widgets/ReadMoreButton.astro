@@ -1,0 +1,21 @@
+---
+import { t } from '@utils/i18n';
+import { Icon } from 'astro-icon/components';
+import type { ComponentProps } from 'astro/types';
+
+type Props = Omit<ComponentProps<typeof Icon>, 'name' | 'class'>;
+
+const { href, title, ...rest } = Astro.props;
+---
+
+<a
+  href={href}
+  title={title || t.button.more()}
+  class="duration-150 hover:brightness-110 active:brightness-90 max-md:hidden"
+>
+  <Icon
+    name="material-symbols:chevron-right-rounded"
+    {...rest}
+    class="bg-primary/60 text-primary-content h-full min-h-48 w-12"
+  />
+</a>

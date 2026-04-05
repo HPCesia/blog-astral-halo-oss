@@ -1,0 +1,10 @@
+
+[core]
+markdown.file_extensions         = ["md", "markdown", "mdx"]
+markdown.glfm_heading_ids.enable = true
+
+[code_action]
+toc.enable = false
+
+[completion]
+wiki.style = "file-stem"

@@ -1,0 +1,46 @@
+---
+import { siteConfig } from '@/config';
+import type { BlogPost } from '@/types/data';
+import Pagination from './widgets/Pagination.astro';
+import PostCard from './widgets/PostCard.astro';
+
+interface Props {
+  posts: BlogPost[];
+  currentPage: number;
+  postsPerPage?: number;
+  baseUrl: string;
+  specialPage?: { page: number; url: string }[];
+}
+
+let { posts, currentPage, postsPerPage, baseUrl, specialPage } = Astro.props;
+
+postsPerPage = postsPerPage || siteConfig.postsPerPage;
+
+const totalPages = Math.ceil(posts.length / postsPerPage);
+posts = posts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+---
+
+<div id="post-page" class="swup-transition-slide flex flex-col gap-4">
+  {
+    posts.map((post) => {
+      const data = post.data;
+      return (
+        <PostCard
+          title={data.title}
+          url={'/posts/' + data.slug + '/'}
+          published={data.published}
+          tags={data.tags}
+          category={data.category}
+          cover={data.cover}
+          description={data.description}
+        />
+      );
+    })
+  }
+  <Pagination
+    total={totalPages}
+    current={currentPage}
+    baseUrl={baseUrl}
+    specialPages={specialPage}
+  />
+</div>

@@ -1,0 +1,239 @@
+---
+import { siteConfig } from '@/config';
+import type { BlogPostData } from '@/types/data';
+import ProfileCard from '@components/aside/ProfileCard.astro';
+import TOC from '@components/aside/TOC.astro';
+import MetaList from '@components/widgets/MetaList.astro';
+import MainLayout from '@layouts/MainLayout.astro';
+import { getCategoryUrl, getPostsCount, getSortedPosts, getTagUrl } from '@utils/content-utils';
+import { t } from '@utils/i18n';
+import { Icon } from 'astro-icon/components';
+import dayjs from 'dayjs';
+
+export async function getStaticPaths() {
+  const allBlogPosts = await getSortedPosts();
+  const yearMap = new Map<number, Map<number, { body: string; data: BlogPostData }[]>>();
+  for (const post of allBlogPosts) {
+    const time = dayjs(post.data.published);
+    const year = time.year();
+    const month = time.month() + 1;
+    let monthMap = yearMap.get(year);
+    if (!monthMap) {
+      monthMap = new Map();
+      yearMap.set(year, monthMap);
+    }
+    let monthPosts = monthMap.get(month);
+    if (!monthPosts) {
+      monthPosts = [];
+      monthMap.set(month, monthPosts);
+    }
+    monthPosts.push(post);
+  }
+  const data = Array.from(yearMap.entries()).map(([year, monthMap]) => ({
+    year,
+    data: Array.from(monthMap.entries()).map(([month, postData]) => ({
+      month,
+      data: postData,
+    })),
+  }));
+  const paths = [
+    {
+      params: {
+        time: undefined,
+      },
+      props: {
+        data,
+      },
+    },
+    ...data.map(({ year }) => ({
+      params: {
+        time: year,
+      },
+      props: {
+        data: data,
+      },
+    })),
+  ];
+  return paths;
+}
+
+const { data } = Astro.props;
+const currentYear = Number(Astro.params.time);
+const postCount = await getPostsCount();
+---
+
+<MainLayout>
+  <div class="card border-base-300 bg-base-200 swup-transition-fade border px-6 py-4">
+    <div class="tooltip md:tooltip-right tooltip-bottom mx-auto w-fit">
+      <h1 class="text-center text-3xl font-bold">{t.navigation.archive.title()}</h1>
+      <div class="tooltip-content">
+        {t.status.postsCount(postCount)}
+      </div>
+    </div>
+    {
+      (() => {
+        function renderMonth(year: number, month: number) {
+          let monthData = data
+            .find((d) => d.year === year)
+            ?.data.find((d) => d.month === month)?.data;
+          if (!monthData) {
+            console.log('[WARNING] Month data not found for year:', year, 'month:', month);
+            return <p>SHOULD NOT RENDER THIS, IS A BUG</p>;
+          }
+          return (
+            <ul class="list">
+              {monthData.map(({ data }) => (
+                <li class="list-row">
+                  <div class="list-col-grow">
+                    <a
+                      href={`/posts/${data.slug}`}
+                      title={data.title}
+                      class="text-lg font-bold"
+                    >
+                      {data.title}
+                    </a>
+                    <MetaList
+                      class="text-base-content/60 mt-2 items-start text-sm"
+                      metas={[
+                        {
+                          icon: 'material-symbols:category-outline-rounded',
+                          text: data.category || t.meta.unCategorized(),
+                          link: getCategoryUrl(data.category),
+                        },
+                        {
+                          icon: 'material-symbols:tag-rounded',
+                          title: t.meta.tags(),
+                          group: data.tags.map((tag) => ({
+                            icon: 'material-symbols:tag-rounded',
+                            text: tag,
+                            link: getTagUrl(tag),
+                          })),
+                        },
+                      ]}
+                    />
+                  </div>
+                  <time
+                    datetime={data.published.toISOString()}
+                    data-no-relative="true"
+                    class="text-base-content/60"
+                  >
+                    {data.published.toLocaleDateString(siteConfig.lang.replace('_', '-'))}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        function renderYear(year: number, reverse: boolean = false) {
+          const yearData = data.find((d) => d.year === year)?.data;
+          if (!yearData) {
+            console.log('[WARNING] Year data not found for year:', year);
+            return <p>SHOULD NOT RENDER THIS, IS A BUG</p>;
+          }
+          return (
+            <ul class="timeline timeline-snap-icon timeline-vertical max-md:timeline-compact w-full">
+              {yearData.map(({ month }, index) => (
+                <li>
+                  {index > 0 && <hr />}
+                  <div class="timeline-middle">
+                    <Icon
+                      name="material-symbols:add-circle-rounded"
+                      height="1.25rem"
+                      width="1.25rem"
+                    />
+                  </div>
+                  <div
+                    class:list={[
+                      `timeline-${(index % 2 === 0) !== reverse ? 'start' : 'end'}`,
+                      'w-full',
+                    ]}
+                  >
+                    <div
+                      class:list={[
+                        (index % 2 === 0) !== reverse && 'md:text-end',
+                        'mx-4 text-2xl font-bold',
+                      ]}
+                      id={`${year}-${month}`}
+                    >
+                      {month}
+                    </div>
+                    <div class="mx-2">{renderMonth(year, month)}</div>
+                  </div>
+                  <hr />
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        function renderAll() {
+          let totalMonths = 0;
+          return data.map(({ year, data: yearData }) => {
+            const reverse = totalMonths % 2 !== 0;
+            totalMonths += yearData.length;
+            return (
+              <>
+                <div class="divider mt-12 scroll-mt-20 text-2xl font-bold" id={`${year}`}>
+                  <a
+                    href={`/archives/${year}`}
+                    title={`${year}`}
+                    class="hover:text-primary duration-200"
+                  >
+                    {year}
+                  </a>
+                </div>
+                <div class="px-4">{renderYear(year, reverse)}</div>
+              </>
+            );
+          });
+        }
+
+        if (currentYear) {
+          return renderYear(currentYear);
+        } else {
+          return renderAll();
+        }
+      })()
+    }
+  </div>
+  <Fragment slot="aside-fixed">
+    <ProfileCard />
+  </Fragment>
+  <Fragment slot="aside-sticky">
+    {
+      currentYear ? (
+        (() => {
+          const yearData = data.find((d) => d.year === currentYear);
+
+          return (
+            yearData && (
+              <TOC
+                headings={yearData.data.map(({ month }) => ({
+                  depth: 2,
+                  text: month.toString(),
+                  slug: `${currentYear}-${month}`,
+                }))}
+              />
+            )
+          );
+        })()
+      ) : (
+        <TOC
+          headings={data.flatMap(({ year, data }) => [
+            {
+              depth: 2,
+              text: year.toString(),
+              slug: `${year}`,
+            },
+            ...data.map(({ month }) => ({
+              depth: 3,
+              text: month.toString(),
+              slug: `${year}-${month}`,
+            })),
+          ])}
+        />
+      )
+    }
+  </Fragment>
+</MainLayout>
